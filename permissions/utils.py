@@ -22,12 +22,9 @@ from permissions.models import Role
 
 def add_role(principal, role):
     """Adds a global role to a principal.
-
     **Parameters:**
-
     principal
         The principal (user or group) which gets the role added.
-
     role
         The role which is assigned.
     """
@@ -48,15 +45,11 @@ def add_role(principal, role):
 
 def add_local_role(obj, principal, role):
     """Adds a local role to a principal.
-
     **Parameters:**
-
     obj
         The object for which the principal gets the role.
-
     principal
         The principal (user or group) which gets the role.
-
     role
         The role which is assigned.
     """
@@ -78,12 +71,9 @@ def add_local_role(obj, principal, role):
 
 def remove_role(principal, role):
     """Removes role from passed principal.
-
     **Parameters:**
-
     principal
         The principal (user or group) from which the role is removed.
-
     role
         The role which is removed.
     """
@@ -104,15 +94,11 @@ def remove_role(principal, role):
 
 def remove_local_role(obj, principal, role):
     """Removes role from passed object and principle.
-
     **Parameters:**
-
     obj
         The object from which the role is removed.
-
     principal
         The principal (user or group) from which the role is removed.
-
     role
         The role which is removed.
     """
@@ -135,9 +121,7 @@ def remove_local_role(obj, principal, role):
 
 def remove_roles(principal):
     """Removes all roles passed principal (user or group).
-
     **Parameters:**
-
     principal
         The principal (user or group) from which all roles are removed.
     """
@@ -157,12 +141,9 @@ def remove_roles(principal):
 def remove_local_roles(obj, principal):
     """Removes all local roles from passed object and principal (user or
     group).
-
     **Parameters:**
-
     obj
         The object from which the roles are removed.
-
     principal
         The principal (user or group) from which the roles are removed.
     """
@@ -184,23 +165,16 @@ def remove_local_roles(obj, principal):
 
 def get_roles(user, obj=None):
     """Returns *all* roles of the passed user.
-
     This takes direct roles and roles via the user's groups into account.
-
     If an object is passed local roles will also added. Then all local roles
     from all ancestors and all user's groups are also taken into account.
-
     This is the method to use if one want to know whether the passed user
     has a role in general (for the passed object).
-
     **Parameters:**
-
     user
         The user for which the roles are returned.
-
     obj
         The object for which local roles will returned.
-
     """
     # Cached roles
     obj_id = "0"
@@ -213,33 +187,19 @@ def get_roles(user, obj=None):
         pass
 
     groups = user.groups.all()
-    groups_ids_str = ", ".join([str(g.id) for g in groups])
 
-    if groups_ids_str:
-        prrs = PrincipalRoleRelation.objects.filter(
-            Q(user_id=user.id) | Q(group_id__in=groups_ids_str), content_id=None
-        ).values("role_id")
-    else:
-        prrs = PrincipalRoleRelation.objects.filter(user_id=user.id, content_id=None).values("role_id")
-
-    role_ids = [ppr["role_id"] for ppr in prrs]
+    role_ids = list(PrincipalRoleRelation.objects.filter(
+        Q(user_id=user.id) | Q(group_id__in=groups), content_id=None
+    ).values_list('role_id', flat=True))
 
     # Local roles for user and the user's groups and all ancestors of the
     # passed object.
     while obj:
         ctype = ContentType.objects.get_for_model(obj)
 
-        if groups_ids_str:
-            prrs = PrincipalRoleRelation.objects.filter(
-                Q(user_id=user.id) | Q(group_id__in=groups_ids_str), content_id=obj.id, content_type_id=ctype.id
-            ).values("role_id")
-        else:
-            prrs = PrincipalRoleRelation.objects.filter(
-                user_id=user.id, content_id=obj.id, content_type_id=ctype.id
-            ).values("role_id")
-
-        for prr in prrs:
-            role_ids.append(prr["role_id"])
+        role_ids.extend(PrincipalRoleRelation.objects.filter(
+            Q(user_id=user.id) | Q(group_id__in=groups), content_id=obj.id, content_type_id=ctype.id
+        ).values_list('role_id', flat=True))
 
         try:
             obj = obj.get_parent_for_permissions()
@@ -285,18 +245,13 @@ def get_local_roles(obj, principal):
 
 def check_permission(obj, user, codename, roles=None):
     """Checks whether passed user has passed permission for passed obj.
-
     **Parameters:**
-
     obj
         The object for which the permission should be checked.
-
     codename
         The permission's codename which should be checked.
-
     user
         The user for which the permission should be checked.
-
     roles
         If given these roles will be assigned to the user temporarily before
         the permissions are checked.
@@ -308,15 +263,11 @@ def check_permission(obj, user, codename, roles=None):
 def grant_permission(obj, role, permission):
     """Grants passed permission to passed role. Returns True if the permission
     was able to be added, otherwise False.
-
     **Parameters:**
-
     obj
         The content object for which the permission should be granted.
-
     role
         The role for which the permission should be granted.
-
     permission
         The permission which should be granted. Either a permission
         object or the codename of a permission.
@@ -338,15 +289,11 @@ def grant_permission(obj, role, permission):
 def remove_permission(obj, role, permission):
     """Removes passed permission from passed role and object. Returns True if
     the permission has been removed.
-
     **Parameters:**
-
     obj
         The content object for which a permission should be removed.
-
     role
         The role for which a permission should be removed.
-
     permission
         The permission which should be removed. Either a permission object
         or the codename of a permission.
@@ -369,18 +316,13 @@ def remove_permission(obj, role, permission):
 
 def has_permission(obj, user, codename, roles=None):
     """Checks whether the passed user has passed permission for passed object.
-
     **Parameters:**
-
     obj
         The object for which the permission should be checked.
-
     codename
         The permission's codename which should be checked.
-
     request
         The current request.
-
     roles
         If given these roles will be assigned to the user temporarily before
         the permissions are checked.
@@ -422,9 +364,7 @@ def has_permission(obj, user, codename, roles=None):
 
 def add_inheritance_block(obj, permission):
     """Adds an inheritance for the passed permission on the passed obj.
-
     **Parameters:**
-
         permission
             The permission for which an inheritance block should be added.
             Either a permission object or the codename of a permission.
@@ -450,12 +390,9 @@ def add_inheritance_block(obj, permission):
 def remove_inheritance_block(obj, permission):
     """Removes a inheritance block for the passed permission from the passed
     object.
-
     **Parameters:**
-
     obj
         The content object for which an inheritance block should be added.
-
     permission
         The permission for which an inheritance block should be removed.
         Either a permission object or the codename of a permission.
@@ -477,12 +414,9 @@ def remove_inheritance_block(obj, permission):
 
 def is_inherited(obj, codename):
     """Returns True if the passed permission is inherited for passed object.
-
     **Parameters:**
-
     obj
         The content object for which the permission should be checked.
-
     codename
         The permission which should be checked. Must be the codename of the
         permission.
@@ -511,9 +445,7 @@ def get_group(id_or_name):
 def get_role(id_or_name):
     """Returns the role with passed id or name. If it not exists it returns
     None.
-
     **Parameters:**
-
     id_or_name
         The id or the name of the role which should be returned.
     """
@@ -528,9 +460,7 @@ def get_role(id_or_name):
 def get_user(id_or_username):
     """Returns the user with passed id or username. If it not exists it returns
     None.
-
     **Parameters:**
-
     id_or_username
         The id or the username of the user which should be returned.
     """
@@ -562,16 +492,12 @@ def reset(obj):
 def register_permission(name, codename, ctypes=None):
     """Registers a permission to the framework. Returns the permission if the
     registration was successfully, otherwise False.
-
     **Parameters:**
-
     name
         The unique name of the permission. This is displayed to the customer.
-
     codename
         The unique codename of the permission. This is used internally to
         identify the permission.
-
     content_types
         The content type for which the permission is active. This can be
         used to display only reasonable permissions for an object. This
@@ -595,9 +521,7 @@ def register_permission(name, codename, ctypes=None):
 
 def unregister_permission(codename):
     """Unregisters a permission from the framework
-
     **Parameters:**
-
     codename
         The unique codename of the permission.
     """
@@ -611,9 +535,7 @@ def unregister_permission(codename):
 def register_role(name):
     """Registers a role with passed name to the framework. Returns the new
     role if the registration was successfully, otherwise False.
-
     **Parameters:**
-
     name
         The unique role name.
     """
@@ -625,9 +547,7 @@ def register_role(name):
 
 def unregister_role(name):
     """Unregisters the role with passed name.
-
     **Parameters:**
-
     name
         The unique role name.
     """
@@ -642,11 +562,8 @@ def unregister_role(name):
 def register_group(name):
     """Registers a group with passed name to the framework. Returns the new
     group if the registration was successfully, otherwise False.
-
     Actually this creates just a default Django Group.
-
     **Parameters:**
-
     name
         The unique group name.
     """
@@ -659,11 +576,8 @@ def register_group(name):
 def unregister_group(name):
     """Unregisters the group with passed name. Returns True if the
     unregistration was succesfull otherwise False.
-
     Actually this deletes just a default Django Group.
-
     **Parameters:**
-
     name
         The unique role name.
     """
@@ -674,3 +588,4 @@ def unregister_group(name):
 
     group.delete()
     return True
+
